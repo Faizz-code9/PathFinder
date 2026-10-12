@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Compass, Lock, Mail, ArrowRight, AlertCircle, Sparkles, UserCheck } from 'lucide-react';
+import { Compass, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
@@ -14,19 +14,16 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {
-    if (e) e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError('');
     setLoading(true);
-
-    const loginEmail = customEmail || email;
-    const loginPass = customPass || password;
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPass }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -44,12 +41,6 @@ function LoginForm() {
     }
   };
 
-  const quickLogin = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('password123');
-    handleLogin(undefined, demoEmail, 'password123');
-  };
-
   return (
     <div className="max-w-md w-full">
       {/* Header */}
@@ -61,59 +52,6 @@ function LoginForm() {
         <p className="text-xs text-slate-400 mt-1.5">
           Access the hybrid graph-relational networking engine
         </p>
-      </div>
-
-      {/* Quick Demo Logins */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 mb-6 shadow-xl">
-        <p className="text-xs font-semibold text-cyan-300 flex items-center gap-1.5 mb-3">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          Quick Demo Logins (Password: <code className="text-white">password123</code>):
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => quickLogin('alice.chen@google.com')}
-            className="text-left p-2.5 rounded-xl bg-slate-950/80 hover:bg-blue-950/40 border border-slate-800/80 hover:border-blue-500/50 transition group"
-          >
-            <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
-              Alice Chen
-            </p>
-            <p className="text-[10px] text-slate-400 truncate">Google • 5 Hops</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => quickLogin('bob.martinez@openai.com')}
-            className="text-left p-2.5 rounded-xl bg-slate-950/80 hover:bg-blue-950/40 border border-slate-800/80 hover:border-blue-500/50 transition group"
-          >
-            <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
-              Bob Martinez
-            </p>
-            <p className="text-[10px] text-slate-400 truncate">OpenAI • Graph AI</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => quickLogin('carol.taylor@stripe.com')}
-            className="text-left p-2.5 rounded-xl bg-slate-950/80 hover:bg-blue-950/40 border border-slate-800/80 hover:border-blue-500/50 transition group"
-          >
-            <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
-              Carol Taylor
-            </p>
-            <p className="text-[10px] text-slate-400 truncate">Stripe • Payments</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => quickLogin('admin@pathfinder.io')}
-            className="text-left p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-950/60 border border-purple-900/60 hover:border-purple-500/50 transition group"
-          >
-            <p className="text-xs font-bold text-purple-300 group-hover:text-purple-200 truncate flex items-center gap-1">
-              <UserCheck className="w-3 h-3" /> System Admin
-            </p>
-            <p className="text-[10px] text-purple-400/80 truncate">Full RBAC Control</p>
-          </button>
-        </div>
       </div>
 
       {/* Login Form */}
