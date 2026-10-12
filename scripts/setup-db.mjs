@@ -61,15 +61,24 @@ async function setupNeo4j() {
   try {
     console.log('Connected to Neo4j.');
 
+    const parseCypherStatements = (content) =>
+      content
+        .split(';')
+        .map((stmt) =>
+          stmt
+            .split('\n')
+            .filter((line) => !line.trim().startsWith('//'))
+            .join('\n')
+            .trim()
+        )
+        .filter((stmt) => stmt.length > 0);
+
     // 1. Schema constraints & indexes
     const schemaFile = path.join(rootDir, 'db', 'neo4j', 'schema.cypher');
     if (fs.existsSync(schemaFile)) {
       console.log('  Executing schema.cypher...');
       const schemaCypher = fs.readFileSync(schemaFile, 'utf-8');
-      const statements = schemaCypher
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('//'));
+      const statements = parseCypherStatements(schemaCypher);
 
       for (const stmt of statements) {
         await session.run(stmt);
@@ -81,10 +90,7 @@ async function setupNeo4j() {
     if (fs.existsSync(seedFile)) {
       console.log('  Executing seed.cypher...');
       const seedCypher = fs.readFileSync(seedFile, 'utf-8');
-      const statements = seedCypher
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('//'));
+      const statements = parseCypherStatements(seedCypher);
 
       for (const stmt of statements) {
         await session.run(stmt);

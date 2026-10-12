@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const limit = Math.min(Number(searchParams.get('limit')) || 30, 100);
 
     let sql = `
-      SELECT DISTINCT
+      SELECT
         u.id,
         u.email,
         u.role,
@@ -46,12 +46,12 @@ export async function GET(request: Request) {
         plainto_tsquery('english', $${paramIdx})
       ) AS search_rank`;
 
-      whereConditions.push(`
+      whereConditions.push(`(
         to_tsvector('english', p.full_name || ' ' || COALESCE(p.headline, '') || ' ' || COALESCE(p.bio, ''))
         @@ plainto_tsquery('english', $${paramIdx})
         OR p.full_name ILIKE '%' || $${paramIdx} || '%'
         OR p.headline ILIKE '%' || $${paramIdx} || '%'
-      `);
+      )`);
     }
 
     sql += ` FROM users u JOIN profiles p ON u.id = p.user_id `;
@@ -59,15 +59,21 @@ export async function GET(request: Request) {
     if (skill) {
       params.push(skill);
       const skillIdx = params.length;
-      sql += ` JOIN user_skills us_f ON u.id = us_f.user_id JOIN skills s_f ON us_f.skill_id = s_f.id `;
-      whereConditions.push(`s_f.name ILIKE '%' || $${skillIdx} || '%'`);
+      whereConditions.push(`EXISTS (
+        SELECT 1 FROM user_skills us_f
+        JOIN skills s_f ON us_f.skill_id = s_f.id
+        WHERE us_f.user_id = u.id AND s_f.name ILIKE '%' || $${skillIdx} || '%'
+      )`);
     }
 
     if (company) {
       params.push(company);
       const compIdx = params.length;
-      sql += ` JOIN experiences e_f ON u.id = e_f.user_id JOIN companies c_f ON e_f.company_id = c_f.id `;
-      whereConditions.push(`c_f.name ILIKE '%' || $${compIdx} || '%'`);
+      whereConditions.push(`EXISTS (
+        SELECT 1 FROM experiences e_f
+        JOIN companies c_f ON e_f.company_id = c_f.id
+        WHERE e_f.user_id = u.id AND c_f.name ILIKE '%' || $${compIdx} || '%'
+      )`);
     }
 
     if (whereConditions.length > 0) {

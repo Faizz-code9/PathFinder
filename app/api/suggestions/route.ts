@@ -25,10 +25,13 @@ export async function GET(request: Request) {
              COUNT(DISTINCT friend) AS mutualCount,
              COLLECT(DISTINCT friend.name)[0..3] AS mutualNames
       ORDER BY mutualCount DESC, suggestion.name ASC
-      LIMIT $limit
+      LIMIT toInteger($limit)
     `;
 
     const graphSuggestions = await runCypher(cypher, { userId, limit });
+
+    const toNum = (val: any) =>
+      typeof val === 'object' && val !== null && 'low' in val ? Number(val.low) : Number(val || 0);
 
     if (graphSuggestions.length === 0) {
       // Fallback: If user has 0 connections, recommend influential nodes (high degree centrality)
@@ -43,14 +46,19 @@ export async function GET(request: Request) {
                COUNT(DISTINCT n) AS mutualCount,
                [] AS mutualNames
         ORDER BY mutualCount DESC
-        LIMIT $limit
+        LIMIT toInteger($limit)
       `;
       const fallbackResults = await runCypher(fallbackCypher, { userId, limit });
-      return NextResponse.json({ suggestions: fallbackResults, isFallback: true });
+      const cleanedFallback = fallbackResults.map((s) => ({
+        ...s,
+        userId: toNum(s.userId),
+        mutualCount: toNum(s.mutualCount),
+      }));
+      return NextResponse.json({ suggestions: cleanedFallback, isFallback: true });
     }
 
     // 2. Fetch rich profile context for each suggestion from PostgreSQL
-    const userIds = graphSuggestions.map((s) => Number(s.userId));
+    const userIds = graphSuggestions.map((s) => toNum(s.userId));
     const pgRes = await pool.query(
       `SELECT u.id, p.location,
               COALESCE(
@@ -69,12 +77,12 @@ export async function GET(request: Request) {
     const profileMap = new Map(pgRes.rows.map((r) => [r.id, r]));
 
     const enriched = graphSuggestions.map((s) => {
-      const uId = Number(s.userId);
+      const uId = toNum(s.userId);
       const details = profileMap.get(uId) || {};
       return {
         ...s,
         userId: uId,
-        mutualCount: Number(s.mutualCount),
+        mutualCount: toNum(s.mutualCount),
         location: details.location || 'San Francisco, CA',
         currentRoles: details.current_roles || [],
       };
