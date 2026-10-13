@@ -51,15 +51,35 @@ async function setupPostgres() {
   }
 }
 
+async function waitForNeo4j(driver, maxRetries = 15, delayMs = 3000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const session = driver.session();
+    try {
+      await session.run('RETURN 1');
+      await session.close();
+      return;
+    } catch (err) {
+      await session.close();
+      if (attempt === maxRetries) {
+        throw err;
+      }
+      console.log(`  ⏳ Waiting for Neo4j Bolt server to be ready (attempt ${attempt}/${maxRetries})...`);
+      await new Promise((res) => setTimeout(res, delayMs));
+    }
+  }
+}
+
 async function setupNeo4j() {
   console.log('🌐 Initializing Neo4j schema & seed data...');
   const driver = neo4j.driver(
     neo4jUri,
     neo4j.auth.basic(neo4jUser, neo4jPassword)
   );
-  const session = driver.session();
+  let session;
   try {
+    await waitForNeo4j(driver);
     console.log('Connected to Neo4j.');
+    session = driver.session();
 
     const parseCypherStatements = (content) =>
       content
@@ -102,7 +122,7 @@ async function setupNeo4j() {
     console.error('❌ Neo4j Setup Failed:', err);
     throw err;
   } finally {
-    await session.close();
+    if (session) await session.close();
     await driver.close();
   }
 }
