@@ -57,7 +57,18 @@ export default function PathGraph({
   const [dimensions, setDimensions] = useState({ width: 800, height: 550 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const pathSet = new Set(pathNodeIds.map(Number));
+  const toNum = (val: any): number => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'object') {
+      if ('id' in val) return toNum(val.id);
+      if ('userId' in val) return toNum(val.userId);
+      if ('low' in val) return Number(val.low);
+    }
+    const n = Number(val);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const pathSet = new Set(pathNodeIds.map(toNum));
 
   useEffect(() => {
     function updateDimensions() {
@@ -73,14 +84,14 @@ export default function PathGraph({
     return () => window.removeEventListener('resize', updateDimensions);
   }, [height]);
 
-  // Format graph data
+  // Format graph data with strict number types for d3-force
   const graphData = {
     nodes: nodes.map((n) => {
-      const numId = Number(n.id);
+      const numId = toNum(n.id);
       const isPath = pathSet.has(numId);
-      const isSource = pathNodeIds.length > 0 && numId === Number(pathNodeIds[0]);
+      const isSource = pathNodeIds.length > 0 && numId === toNum(pathNodeIds[0]);
       const isTarget =
-        pathNodeIds.length > 1 && numId === Number(pathNodeIds[pathNodeIds.length - 1]);
+        pathNodeIds.length > 1 && numId === toNum(pathNodeIds[pathNodeIds.length - 1]);
 
       return {
         ...n,
@@ -91,17 +102,19 @@ export default function PathGraph({
       };
     }),
     links: links.map((l) => {
-      const sId = typeof l.source === 'object' ? Number(l.source.id) : Number(l.source);
-      const tId = typeof l.target === 'object' ? Number(l.target.id) : Number(l.target);
+      const sId = toNum(l.source);
+      const tId = toNum(l.target);
 
       // Check if this link is along the shortest path
-      let isPathLink = false;
-      for (let i = 0; i < pathNodeIds.length - 1; i++) {
-        const u1 = Number(pathNodeIds[i]);
-        const u2 = Number(pathNodeIds[i + 1]);
-        if ((sId === u1 && tId === u2) || (sId === u2 && tId === u1)) {
-          isPathLink = true;
-          break;
+      let isPathLink = Boolean(l.isPathLink);
+      if (!isPathLink) {
+        for (let i = 0; i < pathNodeIds.length - 1; i++) {
+          const u1 = toNum(pathNodeIds[i]);
+          const u2 = toNum(pathNodeIds[i + 1]);
+          if ((sId === u1 && tId === u2) || (sId === u2 && tId === u1)) {
+            isPathLink = true;
+            break;
+          }
         }
       }
 
@@ -191,13 +204,16 @@ export default function PathGraph({
         backgroundColor="#020617"
         nodeRelSize={6}
         nodeLabel={(node: any) => `${node.name || 'User'} • ${node.headline || ''}`}
-        linkWidth={(link: any) => (link.isPathLink ? 3.5 : 1.2)}
+        linkWidth={(link: any) => (link.isPathLink ? 4 : 1.5)}
         linkColor={(link: any) =>
-          link.isPathLink ? '#38bdf8' : 'rgba(100, 116, 139, 0.25)'
+          link.isPathLink ? '#38bdf8' : 'rgba(148, 163, 184, 0.4)'
         }
-        linkDirectionalParticles={(link: any) => (link.isPathLink ? 4 : 0)}
-        linkDirectionalParticleSpeed={(link: any) => (link.isPathLink ? 0.008 : 0)}
-        linkDirectionalParticleWidth={(link: any) => (link.isPathLink ? 3.5 : 0)}
+        linkDirectionalArrowLength={(link: any) => (link.isPathLink ? 7 : 0)}
+        linkDirectionalArrowRelPos={0.55}
+        linkDirectionalArrowColor={() => '#38bdf8'}
+        linkDirectionalParticles={(link: any) => (link.isPathLink ? 5 : 0)}
+        linkDirectionalParticleSpeed={(link: any) => (link.isPathLink ? 0.01 : 0)}
+        linkDirectionalParticleWidth={(link: any) => (link.isPathLink ? 4 : 0)}
         linkDirectionalParticleColor={() => '#38bdf8'}
         onNodeClick={(node: any) => onNodeClick && onNodeClick(node)}
         nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {

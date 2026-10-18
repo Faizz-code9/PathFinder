@@ -95,18 +95,75 @@ function PathfinderContent() {
     }
   }, []);
 
-  const pathNodeIds = pathResult?.nodes ? pathResult.nodes.map((n: any) => Number(n.userId)) : [];
+  const toNum = (val: any): number => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'object' && 'low' in val) return Number(val.low);
+    const n = Number(val);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const pathNodeIds = pathResult?.nodes
+    ? pathResult.nodes.map((n: any) => toNum(n.userId))
+    : [];
 
   // Merge path nodes with subgraph to give full context
-  const combinedNodes = [...subgraph.nodes];
+  const combinedNodes = [...subgraph.nodes.map((n) => ({ ...n, id: toNum(n.id) }))];
   if (pathResult?.nodes) {
     pathResult.nodes.forEach((pn: any) => {
-      if (!combinedNodes.some((n) => Number(n.id) === Number(pn.userId))) {
+      const pId = toNum(pn.userId);
+      if (!combinedNodes.some((n) => toNum(n.id) === pId)) {
         combinedNodes.push({
-          id: Number(pn.userId),
+          id: pId,
           name: pn.name,
           headline: pn.headline,
           avatarUrl: pn.avatarUrl,
+        });
+      }
+    });
+  }
+
+  // Guaranteed Path Links (Sequential hops connecting the nodes)
+  const pathLinks: any[] = [];
+  if (pathResult?.pathLinks && pathResult.pathLinks.length > 0) {
+    pathResult.pathLinks.forEach((pl: any) => {
+      pathLinks.push({
+        source: toNum(pl.source),
+        target: toNum(pl.target),
+        relType: pl.relType || 'connection',
+        strength: pl.strength || 0.9,
+        isPathLink: true,
+      });
+    });
+  } else if (pathNodeIds.length > 1) {
+    for (let i = 0; i < pathNodeIds.length - 1; i++) {
+      pathLinks.push({
+        source: pathNodeIds[i],
+        target: pathNodeIds[i + 1],
+        relType: 'connection',
+        strength: 0.9,
+        isPathLink: true,
+      });
+    }
+  }
+
+  // Combine guaranteed path links with background network links
+  const combinedLinks = [...pathLinks];
+  if (subgraph.links && subgraph.links.length > 0) {
+    subgraph.links.forEach((sl: any) => {
+      const s = toNum(sl.source);
+      const t = toNum(sl.target);
+      const exists = combinedLinks.some(
+        (cl) =>
+          (toNum(cl.source) === s && toNum(cl.target) === t) ||
+          (toNum(cl.source) === t && toNum(cl.target) === s)
+      );
+      if (!exists) {
+        combinedLinks.push({
+          source: s,
+          target: t,
+          relType: sl.relType,
+          strength: sl.strength,
+          isPathLink: false,
         });
       }
     });
@@ -306,7 +363,7 @@ function PathfinderContent() {
             </div>
             <PathGraph
               nodes={combinedNodes}
-              links={subgraph.links}
+              links={combinedLinks}
               pathNodeIds={pathNodeIds}
               height={520}
             />
@@ -369,17 +426,6 @@ function PathfinderContent() {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              {/* Mathematical Proof callout */}
-              <div className="p-4 rounded-2xl bg-blue-950/30 border border-blue-900/50 text-xs text-slate-300 flex items-start gap-3">
-                <Zap className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-white">Algorithmic Efficiency Proof:</strong>
-                  <p className="text-slate-400 mt-0.5">
-                    This {pathResult.degrees}-hop shortest path traversal was executed natively by Neo4j's Index-Free Adjacency engine in constant memory time O(k). In contrast, executing this traversal in relational SQL would require evaluating multi-table recursive self-joins across millions of intermediate rows.
-                  </p>
-                </div>
               </div>
             </div>
           )}

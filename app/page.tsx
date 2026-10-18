@@ -7,7 +7,6 @@ import {
   Shield,
   Zap,
   CheckCircle2,
-  Sparkles,
   Layers,
   Search,
   Lock,
@@ -21,11 +20,6 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-950/80 border border-blue-800/80 text-cyan-300 text-xs font-semibold mb-6 shadow-inner">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Advanced DBMS Project: Polyglot Relational + Graph Architecture</span>
-        </div>
-
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1]">
           Turn Cold Outreach Into <br />
           <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">

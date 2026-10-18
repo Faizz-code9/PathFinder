@@ -73,18 +73,30 @@ export async function GET(request: Request) {
       });
     }
 
+    const toNum = (val: any): number => {
+      if (val === null || val === undefined) return 0;
+      if (typeof val === 'object' && 'low' in val) return Number(val.low);
+      const n = Number(val);
+      return isNaN(n) ? 0 : n;
+    };
+
     const rawPath = graphResults[0];
-    const pathNodes = rawPath.nodes;
-    const pathEdges = rawPath.edges;
-    const totalDegrees = Number(rawPath.totalDegrees);
+    const pathNodes = (rawPath.nodes || []).map((n: any) => ({
+      userId: toNum(n.userId),
+      name: n.name,
+      headline: n.headline,
+      avatarUrl: n.avatarUrl,
+    }));
+    const pathEdges = rawPath.edges || [];
+    const totalDegrees = toNum(rawPath.totalDegrees) || Math.max(pathNodes.length - 1, 1);
 
     // 3. Enrich each hop with PL/pgSQL hop annotations
     const enrichedHops = [];
     let cumulativeWarmthScore = 0;
 
     for (let i = 0; i < pathNodes.length - 1; i++) {
-      const u1 = Number(pathNodes[i].userId);
-      const u2 = Number(pathNodes[i + 1].userId);
+      const u1 = toNum(pathNodes[i].userId);
+      const u2 = toNum(pathNodes[i + 1].userId);
       const edge = pathEdges[i] || {};
 
       // Call PL/pgSQL stored procedure get_hop_context
@@ -118,6 +130,15 @@ export async function GET(request: Request) {
       });
     }
 
+    // Explicit path links connecting consecutive nodes along the route
+    const pathLinks = enrichedHops.map((h) => ({
+      source: toNum(h.from.userId),
+      target: toNum(h.to.userId),
+      relType: h.relType,
+      strength: h.strength,
+      isPathLink: true,
+    }));
+
     // Normalized Warmth Rating (0 to 100%)
     const normalizedWarmth = Math.min(
       Math.max(Math.round((cumulativeWarmthScore / totalDegrees) * 1.5), 25),
@@ -133,6 +154,7 @@ export async function GET(request: Request) {
       nodes: pathNodes,
       edges: pathEdges,
       hops: enrichedHops,
+      pathLinks: pathLinks,
     });
   } catch (err) {
     console.error('Pathfinder Traversal Error:', err);

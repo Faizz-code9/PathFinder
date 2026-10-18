@@ -4,28 +4,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Compass,
   Sparkles,
-  Users,
   Search,
   ArrowRight,
-  TrendingUp,
-  CheckCircle2,
   Clock,
-  ShieldCheck,
-  Building,
 } from 'lucide-react';
-import NetworkStats from '@/components/NetworkStats';
 import ProfileCard from '@/components/ProfileCard';
 import ConnectionCard from '@/components/ConnectionCard';
 
 export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [stats, setStats] = useState<any>({
-    activeUsers: 50,
-    totalConnections: 45,
-    totalCompanies: 15,
-    totalSkills: 15,
-    avgConnectionsPerUser: 1.8,
-  });
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,13 +24,6 @@ export default function DashboardPage() {
       if (meRes.ok) {
         const meData = await meRes.json();
         setCurrentUser(meData.user);
-      }
-
-      // 2. Fetch network stats
-      const statsRes = await fetch('/api/admin/stats');
-      if (statsRes.ok) {
-        const sData = await statsRes.json();
-        if (sData.stats) setStats(sData.stats);
       }
 
       // 3. Fetch FoF suggestions
@@ -142,18 +122,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Network Stats View Widgets */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-cyan-400" />
-            Live Network Analytics
-          </h2>
-          <span className="text-xs text-slate-400">PostgreSQL View: <code>v_network_analytics</code></span>
-        </div>
-        <NetworkStats stats={stats} />
-      </section>
 
       {/* Pending Connection Requests (if any) */}
       {pendingRequests.length > 0 && (

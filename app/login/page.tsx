@@ -33,12 +33,18 @@ function LoginForm() {
         return;
       }
 
-      router.push(redirect);
-      router.refresh();
+      // Hard redirect ensures cookies are immediately recognized by middleware and server components
+      window.location.href = redirect;
     } catch (err) {
       setError('Failed to connect to server.');
       setLoading(false);
     }
+  };
+
+  const fillDemoAccount = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('password123');
+    setError('');
   };
 
   return (
@@ -103,7 +109,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full mt-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition disabled:opacity-50"
+          className="w-full mt-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
         >
           {loading ? (
             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -114,7 +120,40 @@ function LoginForm() {
           )}
         </button>
 
-        <p className="text-center text-xs text-slate-400 pt-3">
+        {/* Quick Demo Credentials */}
+        <div className="pt-3 border-t border-slate-800/80">
+          <p className="text-[11px] font-semibold text-slate-400 mb-2">
+            ⚡ Quick Demo Accounts (Password: <code className="text-cyan-400 font-mono">password123</code>):
+          </p>
+          <div className="grid grid-cols-1 gap-1.5">
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('admin@pathfinder.io')}
+              className="w-full flex items-center justify-between text-left text-xs bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800 px-3 py-2 rounded-xl text-slate-300 hover:text-white transition group"
+            >
+              <span>🛡️ <strong className="text-cyan-300">Admin:</strong> admin@pathfinder.io</span>
+              <span className="text-[10px] text-slate-500 group-hover:text-cyan-400">Click to fill</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('alice.chen@google.com')}
+              className="w-full flex items-center justify-between text-left text-xs bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800 px-3 py-2 rounded-xl text-slate-300 hover:text-white transition group"
+            >
+              <span>👤 <strong className="text-blue-300">Alice Chen (Google):</strong> alice.chen@google.com</span>
+              <span className="text-[10px] text-slate-500 group-hover:text-cyan-400">Click to fill</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('bob.martinez@openai.com')}
+              className="w-full flex items-center justify-between text-left text-xs bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800 px-3 py-2 rounded-xl text-slate-300 hover:text-white transition group"
+            >
+              <span>👤 <strong className="text-emerald-300">Bob Martinez (OpenAI):</strong> bob.martinez@openai.com</span>
+              <span className="text-[10px] text-slate-500 group-hover:text-cyan-400">Click to fill</span>
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-slate-400 pt-2">
           Don't have an account?{' '}
           <a href="/register" className="text-cyan-400 hover:underline font-medium">
             Create one now
