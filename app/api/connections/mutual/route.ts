@@ -27,7 +27,13 @@ export async function GET(request: Request) {
     `;
 
     const records = await runCypher(cypher, { u1: sourceId, u2: targetId });
-    return NextResponse.json({ mutualConnections: records, count: records.length });
+    const cleaned = records.map((r: any) => ({
+      ...r,
+      userId: typeof r.userId === 'object' && r.userId !== null && 'low' in r.userId
+        ? Number(r.userId.low)
+        : Number(r.userId),
+    }));
+    return NextResponse.json({ mutualConnections: cleaned, count: cleaned.length });
   } catch (err) {
     console.error('Mutual Connections Error:', err);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });

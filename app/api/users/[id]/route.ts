@@ -143,6 +143,44 @@ export async function PUT(
         ]
       );
 
+      // Handle skills update
+      if (Array.isArray(validated.skills)) {
+        await client.query('DELETE FROM user_skills WHERE user_id = $1', [targetUserId]);
+        for (const sId of validated.skills) {
+          await client.query(
+            `INSERT INTO user_skills (user_id, skill_id, proficiency)
+             VALUES ($1, $2, 'advanced')
+             ON CONFLICT DO NOTHING`,
+            [targetUserId, sId]
+          );
+        }
+      }
+
+      // Handle new experience addition
+      if (validated.newExperience) {
+        const exp = validated.newExperience;
+        await client.query(
+          `INSERT INTO experiences (user_id, company_id, title, start_date, end_date, is_current)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            targetUserId,
+            exp.companyId,
+            exp.title,
+            exp.startDate,
+            exp.endDate || null,
+            exp.isCurrent || false,
+          ]
+        );
+      }
+
+      // Handle experience deletion
+      if (validated.deleteExperienceId) {
+        await client.query(
+          'DELETE FROM experiences WHERE id = $1 AND user_id = $2',
+          [validated.deleteExperienceId, targetUserId]
+        );
+      }
+
       await client.query(
         `UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
         [targetUserId]
@@ -166,11 +204,57 @@ export async function PUT(
             avatarUrl: updatedProfile.avatar_url,
           }
         );
+
+        if (Array.isArray(validated.skills)) {
+          await runCypher(
+            `MATCH (p:Person {userId: $userId})-[r:HAS_SKILL]->()
+             DELETE r
+             WITH p
+             UNWIND $skills AS sId
+             MATCH (s:Skill {skillId: sId})
+             MERGE (p)-[:HAS_SKILL]->(s)`,
+            { userId: targetUserId, skills: validated.skills }
+          );
+        }
+
+        if (validated.newExperience) {
+          await runCypher(
+            `MATCH (p:Person {userId: $userId})
+             MATCH (c:Company {companyId: $cId})
+             MERGE (p)-[:WORKS_AT]->(c)`,
+            { userId: targetUserId, cId: validated.newExperience.companyId }
+          );
+        }
       } catch (graphErr) {
         console.error('[Neo4j Profile Sync Warning]:', graphErr);
       }
 
-      return NextResponse.json({ profile: updatedProfile });
+      // Fetch fresh updated experiences and skills
+      const freshExp = await pool.query(
+        `SELECT e.id, e.title, e.start_date, e.end_date, e.is_current,
+                c.id AS company_id, c.name AS company_name
+         FROM experiences e
+         JOIN companies c ON e.company_id = c.id
+         WHERE e.user_id = $1
+         ORDER BY e.is_current DESC, e.start_date DESC`,
+        [targetUserId]
+      );
+
+      const freshSkills = await pool.query(
+        `SELECT s.id, s.name, us.proficiency
+         FROM user_skills us
+         JOIN skills s ON us.skill_id = s.id
+         WHERE us.user_id = $1
+         ORDER BY s.name ASC`,
+        [targetUserId]
+      );
+
+      return NextResponse.json({
+        profile: updatedProfile,
+        experiences: freshExp.rows,
+        skills: freshSkills.rows,
+        message: 'Profile updated successfully.',
+      });
     } catch (dbErr) {
       await client.query('ROLLBACK');
       throw dbErr;
