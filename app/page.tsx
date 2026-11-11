@@ -2,11 +2,8 @@ import React from 'react';
 import {
   Compass,
   ArrowRight,
-  Database,
-  Share2,
   Shield,
   Zap,
-  CheckCircle2,
   Layers,
   Search,
   Lock,
@@ -46,72 +43,6 @@ export default function LandingPage() {
           >
             Sign In with Demo Account
           </a>
-        </div>
-      </section>
-
-      {/* The Core DBMS Innovation Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-            Why Single-Database Architectures Fail
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-            Evaluating multi-degree relationships in traditional databases requires exponential self-joins that cripple query performance.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Relational Problem Card */}
-          <div className="bg-slate-900/70 border border-red-900/40 rounded-3xl p-8 relative overflow-hidden">
-            <div className="flex items-center gap-3 text-red-400 mb-4">
-              <Database className="w-6 h-6" />
-              <h3 className="text-xl font-bold text-white">Relational Join Explosion (SQL)</h3>
-            </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Finding a 3-hop connection in standard SQL requires a 6-table self-join. With an average degree of <code className="text-red-300">d = 150</code> connections:
-            </p>
-            <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-red-300">
-              <p className="text-slate-400">// Combinatorial Search Space:</p>
-              <p className="text-base font-bold text-red-400 mt-1">
-                150³ = 3,375,000 intermediate records
-              </p>
-              <p className="text-slate-500 mt-1">Complexity: O(N^k) — Query timeouts & memory crash</p>
-            </div>
-            <ul className="mt-4 space-y-2 text-xs text-slate-400">
-              <li className="flex items-center gap-2">
-                <span className="text-red-400 font-bold">✗</span> Exponential disk read amplification
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-400 font-bold">✗</span> Complex recursive Common Table Expressions (CTEs)
-              </li>
-            </ul>
-          </div>
-
-          {/* Neo4j Solution Card */}
-          <div className="bg-slate-900/70 border border-cyan-900/40 rounded-3xl p-8 relative overflow-hidden">
-            <div className="flex items-center gap-3 text-cyan-400 mb-4">
-              <Share2 className="w-6 h-6" />
-              <h3 className="text-xl font-bold text-white">Index-Free Adjacency (Neo4j)</h3>
-            </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Neo4j nodes hold direct physical memory pointers to their connected neighbors on disk, enabling constant-time pointer dereferencing:
-            </p>
-            <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300">
-              <p className="text-slate-400">// Native Cypher Traversal:</p>
-              <p className="text-sm font-bold text-cyan-400 mt-1">
-                MATCH path = shortestPath((a)-[:KNOWS*..6]-(b))
-              </p>
-              <p className="text-slate-500 mt-1">Complexity: O(k) — Sub-millisecond pointer jump</p>
-            </div>
-            <ul className="mt-4 space-y-2 text-xs text-slate-400">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-cyan-400" /> Constant-time dereferencing per hop
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-cyan-400" /> Native Dijkstra & Breadth-First-Search (BFS)
-              </li>
-            </ul>
-          </div>
         </div>
       </section>
 
